@@ -11,9 +11,8 @@ async def _make_response(url: str, params: dict, success=200):
         method="GET", url=url, headers=headers, params=params, timeout=3)
 
     status_code = response.status_code
-    response = await response.json()
     if status_code == success:
-        return response
+        return response.json()
     return status_code
 
 
