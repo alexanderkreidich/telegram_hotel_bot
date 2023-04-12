@@ -29,4 +29,4 @@ async def _get_locations(city: str) -> Dict:
 
 
 city_dict = _get_locations(city='moscow')
-asyncio.run(city_dict)
+print(asyncio.run(city_dict)['suggestions'][1]['entities'])
