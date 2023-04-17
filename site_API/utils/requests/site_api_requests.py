@@ -42,7 +42,10 @@ async def get_hotels_json(destinationId: str, pageNumber: str, pageSize: str, ch
 
     return response
 
-print(asyncio.run(get_hotels_json(destinationId='1506246',pageNumber='1',pageSize='25',checkIn='2023-04-14', checkOut='2023-04-18', adults1='1')))
+
+print(asyncio.run(
+    get_hotels_json(destinationId='1506241', pageNumber='2', pageSize='25', checkIn='2023-07-01', checkOut='2023-07-10',
+                    adults1='2')))
 
 
 async def get_hotel_photos_json(hotel_id: str) -> Dict:
