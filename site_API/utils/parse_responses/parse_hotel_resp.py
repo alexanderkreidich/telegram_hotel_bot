@@ -1,4 +1,4 @@
-from site_API.utils.requests.site_api_requests import get_locations_json, get_hotels_json
+from site_API.utils.requests.site_api_requests import get_locations_json, get_hotels_json, get_hotel_info_json
 import asyncio
 
 
@@ -20,12 +20,9 @@ for city, id_city in city_id.items():
     print(city, id_city)
 
 
-async def hotel_info(domain: str, sort_order: str, locale: str, checkout_date: str, region_id: str,
-                     adults_number: str, checkin_date: str):
+async def hotel_info(hotel_id: str,  domain: str, locale: str):
     hotel_info_dict = dict()
-    info = await get_hotels_json(domain=domain, locale=locale, checkin_date=checkin_date, checkout_date=checkout_date,
-                                 region_id=region_id,
-                                 adults_number=adults_number, sort_order=sort_order)
+    info = await get_hotel_info_json(domain=domain, locale=locale, hotel_id=hotel_id)
     hotel_info_dict["name"] = info['summary']['name']
     hotel_info_dict["address"] = info['summary']['location']['address']['addressLine']
     hotel_info_dict['Photo_1'] = info['propertyGallery']['images'][0]['image']['url']
@@ -39,8 +36,6 @@ async def hotel_info(domain: str, sort_order: str, locale: str, checkout_date: s
 
 
 print()
-hotel: dict = asyncio.run(hotel_info(domain='US', locale='en_US', checkin_date='2023-09-26', checkout_date='2023-09-27',
-                                 region_id='2621',
-                                 adults_number='1', sort_order='PRICE_LOW_TO_HIGH'))
+hotel: dict = asyncio.run(hotel_info(domain='US', locale='en_US', hotel_id='10218'))
 for value, key in hotel.items():
     print(value, key)
