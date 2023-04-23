@@ -125,9 +125,12 @@ async def select_pages(message: types.Message, state: FSMContext):
                                   checkout_date=data['date_out'], adults_number='1')
         for page in range(int(message.text)):
             hotel_id = hotels['properties'][page]['id']
+            print(hotel_id)
+
             hotel: dict = await hotel_info(domain=data['domain'], locale=data['locale'], hotel_id=hotel_id)
             text = f'Отель: {hotel["name"]}\nРейтинг: {hotel["stars"]}\nЕхать от Аэропорта {hotel["title"]}: {hotel["time"]} минут'
-            await bot.send_photo(photo=hotel['Photo_1'], caption=text, chat_id=data['chat_id'])
+            await bot.send_photo(photo=hotel['Photo_1'], caption=text, chat_id=message.chat.id)
+            States.wait_command.set()
 
 
 @dp.message_handler(state=States.wait_command, commands=['history'])

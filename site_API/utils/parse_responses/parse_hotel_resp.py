@@ -22,10 +22,13 @@ async def hotel_info(hotel_id: str, domain: str, locale: str):
     hotel_info_dict['Photo_1'] = info['propertyGallery']['images'][0]['image']['url']
     hotel_info_dict['Photo_2'] = info['propertyGallery']['images'][1]['image']['url']
     hotel_info_dict['Photo_3'] = info['propertyGallery']['images'][2]['image']['url']
-    hotel_info_dict['stars'] = int(info['summary']['tagline'][:1]) * '⭐️'
-    time = info['summary']['map']['markers'][0]['subtitle'][:1]
-    title = info['summary']['map']['markers'][0]['title']
-    hotel_info_dict['map_mark'] = sub_title + 'from the airport on ' + title
+    stars = info['summary']['tagline'][0]
+    if isinstance(stars, int):
+        hotel_info_dict['stars'] = int(info['summary']['tagline'][0]) * '⭐️'
+    else:
+        hotel_info_dict['stars'] = 'Информация не найдена'
+    hotel_info_dict["time"] = info['summary']['map']['markers'][0]['subtitle'][:1]
+    hotel_info_dict["title"] = info['summary']['map']['markers'][0]['title']
     return hotel_info_dict
 
 
