@@ -1,12 +1,11 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
-commands = ['/help', '/low', '/high', '/custom', '/history']
-domains = ["US", "PT", "SE", "SG", "TH", "TR", "TW", "US", "VN", "XE", "ZA"]
+commands = ['/help', '/low', '/high', '/custom', '/history', ]
+domains = ["US"]
 locales = ['en_US']
-call_d = ['a', 'b', 'c', 'd', 'e']
 
 
-def get_ikb_commands(data: list) -> InlineKeyboardMarkup:
-    ikb_commands = InlineKeyboardMarkup(row_width=2)
-    [ikb_commands.add(InlineKeyboardButton(text=cmd, callback_data=cmd)) for cmd in data]
-    return ikb_commands
+def get_kb_commands(data: list) -> ReplyKeyboardMarkup:
+    kb_commands = ReplyKeyboardMarkup(resize_keyboard=True, one_time_keyboard=True)
+    [kb_commands.add(cmd) for cmd in data]
+    return kb_commands

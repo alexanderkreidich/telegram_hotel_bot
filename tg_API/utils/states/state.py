@@ -1,13 +1,19 @@
 from aiogram.dispatcher.filters.state import StatesGroup, State
 
 
-class Region_Info(StatesGroup):
-    get_locale = State()
+class States(StatesGroup):
     get_domain = State()
-
-
-class SelectCity(StatesGroup):
+    get_locale = State()
+    select_cities = State()
     select_city = State()
+    select_date_in = State()
+    select_date_out = State()
+    select_stars = State()
+    select_Pages = State()
+    print_hotels = State()
+    wait_command = State()
+
+
 
 
 
