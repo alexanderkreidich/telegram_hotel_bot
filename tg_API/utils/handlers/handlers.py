@@ -119,19 +119,11 @@ async def high_command(message: types.Message):
 @dp.message_handler(lambda msg: msg.text.isdigit(), state=States.select_Pages)
 async def select_pages(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['pages'] = int(message.text)
-        data['chat_id'] = message.chat.id
-    await States.print_hotels.set()
-
-
-@dp.message_handler(state=States.print_hotels)
-async def print_hotels(state: FSMContext):
-    async with state.proxy() as data:
         print(data)
         hotels = await get_hotels(domain=data['domain'], sort_order='PRICE_LOW_TO_HIGH', locale=data['locale'],
                                   region_id=data['city_id'], checkin_date=data['date_in'],
                                   checkout_date=data['date_out'], adults_number='1')
-        for page in range(data['pages']):
+        for page in range(int(message.text)):
             hotel_id = hotels['properties'][page]['id']
             hotel: dict = await hotel_info(domain=data['domain'], locale=data['locale'], hotel_id=hotel_id)
             text = f'Отель: {hotel["name"]}\nРейтинг: {hotel["stars"]}\nЕхать от Аэропорта {hotel["title"]}: {hotel["time"]} минут'
