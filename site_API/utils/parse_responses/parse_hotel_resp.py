@@ -1,5 +1,4 @@
 from site_API.utils.requests.site_api_requests import get_locations_json, get_hotels_json, get_hotel_info_json
-import asyncio
 
 
 async def get_city_id(city: str) -> dict:
@@ -13,11 +12,6 @@ async def get_city_id(city: str) -> dict:
             city_id[city] = id_city
 
     return city_id
-
-
-city_id = asyncio.run(get_city_id('New York'))
-for city, id_city in city_id.items():
-    print(city, id_city)
 
 
 async def hotel_info(hotel_id: str,  domain: str, locale: str):
@@ -35,7 +29,4 @@ async def hotel_info(hotel_id: str,  domain: str, locale: str):
     return hotel_info_dict
 
 
-print()
-hotel: dict = asyncio.run(hotel_info(domain='US', locale='en_US', hotel_id='10218'))
-for value, key in hotel.items():
-    print(value, key)
+
