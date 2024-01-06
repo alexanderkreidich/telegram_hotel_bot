@@ -29,6 +29,7 @@ async def hotel_info(hotel_id: str, domain: str, locale: str):
         hotel_info_dict['stars'] = 'Информация не найдена'
     hotel_info_dict["time"] = info['summary']['map']['markers'][0]['subtitle'][:1]
     hotel_info_dict["title"] = info['summary']['map']['markers'][0]['title']
+    #добавить цену
     return hotel_info_dict
 
 

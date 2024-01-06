@@ -1,8 +1,9 @@
 from aiogram.types import ReplyKeyboardMarkup, KeyboardButton
 
 commands = ['/help', '/low', '/high', '/custom', '/history', ]
-domains = ["US"]
-locales = ['en_US']
+domains = ["AE"]
+locales = ['en_GB']
+country = []
 
 
 def get_kb_commands(data: list) -> ReplyKeyboardMarkup:

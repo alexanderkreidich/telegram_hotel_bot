@@ -1,4 +1,7 @@
-# TODO FIX AttributeError: module 'aiogram.dispatcher' has no attribute 'message_handler'
+# TODO  заменить домейн и локал на страны беларусь, грузия, казахстан, абхазия
+# Изменить кнопку хай чтобы город выбирался уже после ее нажатия
+# сделать кнопку low
+#
 from aiogram import types
 from aiogram.dispatcher import FSMContext
 from tg_API.utils.keyboards.keyboards import get_kb_commands, domains, commands, locales
@@ -32,37 +35,72 @@ async def help_command(message: types.Message):
     await message.answer(text=help_text, reply_markup=get_kb_commands(commands))
 
 
-@dp.message_handler(state=States.get_domain)
-async def choice_domain(message: types.Message, state: FSMContext):
+@dp.message_handler(commands=['Вернуться в меню'], state='*')
+async def cancel_handler(message: types.Message, state: FSMContext):
+    current_state = await state.get_state()
+    if current_state is None:
+        return
+    await state.finish()
+    await message.reply('Операция отменена.')
+
+
+@dp.message_handler(commands=['low'])
+async def cmd_low(message: types.Message):
+    await States.country.set()
+    await message.reply("В какую страну вы хотели бы полететь?")
+
+
+@dp.message_handler(state=States.country)
+async def process_country(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['domain'] = message.text
-    await message.answer(text='Дальше выберите название вашего региона:', reply_markup=get_kb_commands(locales))
-    await States.get_locale.set()
+        data['country'] = message.text
+    await States.city.set()
+    await message.reply("Какой город в этой стране вы хотите посетить?")
 
 
-@dp.message_handler(lambda message: message not in domains, state=States.get_domain)
-async def choice_domain_incorrectly(message: types.Message):
-    return await message.answer(text='не знаю такого домена. Введите еще раз:', reply_markup=get_kb_commands(domains))
-
-
-@dp.message_handler(state=States.get_locale)
-async def choice_locale(message: types.Message, state: FSMContext):
-    await state.update_data(get_locale=message.text)
+@dp.message_handler(lambda message: message.text.isdigit(), state=States.hotel_count)
+async def process_hotel_count(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['locale'] = message.text
-    await message.answer(text='Пожалуйста, укажите город для поиска')
-    await States.select_cities.set()
+        data['hotel_count'] = int(message.text)
+    await state.finish()
 
 
-@dp.message_handler(lambda message: message not in locales, state=States.get_locale)
-async def choice_locale_incorrectly(message: types.Message):
-    await message.answer(text='не знаю такого региона. Введите еще раз:', reply_markup=get_kb_commands(locales))
+# @dp.message_handler(state=States.get_domain)
+# async def choice_domain(message: types.Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         data['domain'] = message.text
+#     await message.answer(text='Дальше выберите название вашего региона:', reply_markup=get_kb_commands(locales))
+#     await States.get_locale.set()
+
+
+# @dp.message_handler(lambda message: message not in domains, state=States.get_domain)
+# async def choice_domain_incorrectly(message: types.Message):
+#     return await message.answer(text='не знаю такого домена. Введите еще раз:', reply_markup=get_kb_commands(domains))
+
+
+# @dp.message_handler(state=States.get_locale)
+# async def choice_locale(message: types.Message, state: FSMContext):
+#     await state.update_data(get_locale=message.text)
+#     async with state.proxy() as data:
+#         data['locale'] = message.text
+#     await message.answer(text='Пожалуйста, укажите город для поиска')
+#     await States.select_cities.set()
+
+
+# @dp.message_handler(lambda message: message not in locales, state=States.get_locale)
+# async def choice_locale_incorrectly(message: types.Message):
+#     await message.answer(text='не знаю такого региона. Введите еще раз:', reply_markup=get_kb_commands(locales))
 
 
 @dp.message_handler(state=States.wait_command, commands=['custom'])
 async def custom_command(message: types.Message):
     await message.answer(text='Выберите название вашего домена:', reply_markup=get_kb_commands(domains))
     await States.get_domain.set()
+
+
+@dp.message_handler(lambda message: not message.text.isdigit(), state=Form.hotel_count)
+async def process_hotel_invalid(message: types.Message):
+    return await message.reply("Пожалуйста, введите число.")
 
 
 @dp.message_handler(state=States.select_cities)
@@ -78,8 +116,7 @@ async def choice_cities(message: types.Message, state: FSMContext):
 @dp.message_handler(state=States.select_city)
 async def choice_city(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        if data['cities'][message.text] is not None:
-            data['city_id'] = data['cities'][message.text]
+        data['city'] = message.text
     await message.answer(text='Отлично! Теперь введите дату заезда в таком формате yyyy-mm-dd')
     await States.select_date_in.set()
 
@@ -112,6 +149,20 @@ async def choice_stars(message: types.Message, state: FSMContext):
 
 @dp.message_handler(state=States.wait_command, commands=['high'])
 async def high_command(message: types.Message):
+    await message.answer(text='Какую страну хотите посетить?', reply_markup=get_kb_commands())
+    await States.select_country.set()
+
+
+@dp.message_handler(state=States.select_country)
+async def choice_country(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['country'] = message.text
+    await message.answer(text='Отлично! Теперь введите город')
+    await States.select_city.set()
+
+
+@dp.message_handler(state=States.wait_command, commands=['high'])
+async def print_pages(message: types.Message):
     await message.answer(text='Сколько вывести отелей?')
     await States.select_Pages.set()
 
@@ -124,11 +175,12 @@ async def select_pages(message: types.Message, state: FSMContext):
                                   region_id=data['city_id'], checkin_date=data['date_in'],
                                   checkout_date=data['date_out'], adults_number='1')
         for page in range(int(message.text)):
-            hotel_id = hotels['properties'][page]['id']
-            print(hotel_id)
+            hotel: dict = dict()
+            hotel['name'] = hotels['properties'][page]['name']
+            hotel['stars'] = hotels['properties'][page]['star']
+            hotel['address'] = hotels['properties'][page]['price']['formattedDisplayPrice']
 
-            hotel: dict = await hotel_info(domain=data['domain'], locale=data['locale'], hotel_id=hotel_id)
-            text = f'Отель: {hotel["name"]}\nРейтинг: {hotel["stars"]}\nЕхать от Аэропорта {hotel["title"]}: {hotel["time"]} минут'
+            text = f'Отель: {hotel["name"]}\nРейтинг: {hotel["stars"]}\nРасстояние от Аэропорта {hotel["title"]}: {hotel["time"]} минут'
             await bot.send_photo(photo=hotel['Photo_1'], caption=text, chat_id=message.chat.id)
             States.wait_command.set()
 

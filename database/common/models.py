@@ -1,3 +1,6 @@
+#TODO Сделать модели юзера и сделать историю поиска и базу данных, которая будет содержать айди юзера и всю его историю поиска
+# чтобы при перезагрузке оставалась история пользователя определенного
+
 from datetime import datetime
 import peewee as pw
 
@@ -13,3 +16,4 @@ class ModelBase(pw.Model):
 
 class History(ModelBase):
     message = pw.TextField()
+

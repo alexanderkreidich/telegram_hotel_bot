@@ -55,3 +55,4 @@ async def get_hotels_json(domain: str, sort_order: str, locale: str, checkout_da
         raise Exception
 
     return response
+
