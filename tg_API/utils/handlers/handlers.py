@@ -35,19 +35,19 @@ async def help_command(message: types.Message):
     await message.answer(text=help_text, reply_markup=get_kb_commands(commands))
 
 
-@dp.message_handler(commands=['Вернуться в меню'], state='*')
+@dp.message_handler(state='*', commands=['Вернуться в меню'])
 async def cancel_handler(message: types.Message, state: FSMContext):
     current_state = await state.get_state()
     if current_state is None:
         return
-    await state.finish()
     await message.reply('Операция отменена.')
+    await States.wait_command.set()
 
 
-@dp.message_handler(commands=['low'])
+@dp.message_handler(state=States.wait_command, commands=['low'])
 async def cmd_low(message: types.Message):
     await States.country.set()
-    await message.reply("В какую страну вы хотели бы полететь?")
+    await message.answer("В какую страну вы хотели бы полететь?")
 
 
 @dp.message_handler(state=States.country)
@@ -55,14 +55,23 @@ async def process_country(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['country'] = message.text
     await States.city.set()
-    await message.reply("Какой город в этой стране вы хотите посетить?")
+    await message.answer("Какой город в этой стране вы хотите посетить?")
+
+@dp.message_handler(state=States.city)
+async def process_city(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['city'] = message.text
+    await States.hotel_count.set()
+    await message.reply("Сколько вариантов отелей вы хотели бы увидеть?")
+
 
 
 @dp.message_handler(lambda message: message.text.isdigit(), state=States.hotel_count)
 async def process_hotel_count(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['hotel_count'] = int(message.text)
-    await state.finish()
+
+
 
 
 # @dp.message_handler(state=States.get_domain)
@@ -92,33 +101,33 @@ async def process_hotel_count(message: types.Message, state: FSMContext):
 #     await message.answer(text='не знаю такого региона. Введите еще раз:', reply_markup=get_kb_commands(locales))
 
 
-@dp.message_handler(state=States.wait_command, commands=['custom'])
-async def custom_command(message: types.Message):
-    await message.answer(text='Выберите название вашего домена:', reply_markup=get_kb_commands(domains))
-    await States.get_domain.set()
+# @dp.message_handler(state=States.wait_command, commands=['custom'])
+# async def custom_command(message: types.Message):
+#     await message.answer(text='Выберите название вашего домена:', reply_markup=get_kb_commands(domains))
+#     await States.get_domain.set()
 
 
-@dp.message_handler(lambda message: not message.text.isdigit(), state=Form.hotel_count)
+@dp.message_handler(lambda message: not message.text.isdigit(), state=States.hotel_count)
 async def process_hotel_invalid(message: types.Message):
     return await message.reply("Пожалуйста, введите число.")
 
 
-@dp.message_handler(state=States.select_cities)
-async def choice_cities(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        cities: dict = await get_city_id(message.text, locale=data['locale'], domain=data['domain'])
-        cities_names = [key for key in cities.keys()]
-        await message.answer(text='Выберите город', reply_markup=get_kb_commands(cities_names))
-        data['cities'] = cities
-        await States.select_city.set()
+# @dp.message_handler(state=States.select_cities)
+# async def choice_cities(message: types.Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         cities: dict = await get_city_id(message.text, locale=data['locale'], domain=data['domain'])
+#         cities_names = [key for key in cities.keys()]
+#         await message.answer(text='Выберите город', reply_markup=get_kb_commands(cities_names))
+#         data['cities'] = cities
+#         await States.select_city.set()
 
 
-@dp.message_handler(state=States.select_city)
-async def choice_city(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['city'] = message.text
-    await message.answer(text='Отлично! Теперь введите дату заезда в таком формате yyyy-mm-dd')
-    await States.select_date_in.set()
+# @dp.message_handler(state=States.select_city)
+# async def choice_city(message: types.Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         data['city'] = message.text
+#     await message.answer(text='Отлично! Теперь введите дату заезда в таком формате yyyy-mm-dd')
+#     await States.select_date_in.set()
 
 
 @dp.message_handler(lambda msg: len(msg.text.split('-')) == 3, state=States.select_date_in)
@@ -147,18 +156,18 @@ async def choice_stars(message: types.Message, state: FSMContext):
     await States.wait_command.set()
 
 
-@dp.message_handler(state=States.wait_command, commands=['high'])
-async def high_command(message: types.Message):
-    await message.answer(text='Какую страну хотите посетить?', reply_markup=get_kb_commands())
-    await States.select_country.set()
+# @dp.message_handler(state=States.wait_command, commands=['high'])
+# async def high_command(message: types.Message):
+#     await message.answer(text='Какую страну хотите посетить?', reply_markup=get_kb_commands())
+#     await States.select_country.set()
 
 
-@dp.message_handler(state=States.select_country)
-async def choice_country(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['country'] = message.text
-    await message.answer(text='Отлично! Теперь введите город')
-    await States.select_city.set()
+# @dp.message_handler(state=States.select_country)
+# async def choice_country(message: types.Message, state: FSMContext):
+#     async with state.proxy() as data:
+#         data['country'] = message.text
+#     await message.answer(text='Отлично! Теперь введите город')
+#     await States.select_city.set()
 
 
 @dp.message_handler(state=States.wait_command, commands=['high'])
