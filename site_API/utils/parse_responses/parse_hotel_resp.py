@@ -2,14 +2,14 @@ from site_API.utils.requests.site_api_requests import get_locations_json, get_ho
 
 
 async def get_city_id(city: str, domain: str, locale: str) -> dict:
-    city_id = dict()
+    city_id = ''
+    city_country = city.split()
     city = await get_locations_json(city=city, domain=domain, locale=locale)
     city_data = city['data']
     for data in city_data:
-        if data['type'] == 'CITY':
-            city = data['regionNames']['secondaryDisplayName']
-            id_city = data['gaiaId']
-            city_id[city] = id_city
+        if data['type'] == 'CITY' and city_country[1] == data['regionNames']['secondaryDisplayName']:
+            city_id = data['gaiaId']
+            break
 
     return city_id
 
@@ -29,7 +29,6 @@ async def hotel_info(hotel_id: str, domain: str, locale: str):
         hotel_info_dict['stars'] = 'Информация не найдена'
     hotel_info_dict["time"] = info['summary']['map']['markers'][0]['subtitle'][:1]
     hotel_info_dict["title"] = info['summary']['map']['markers'][0]['title']
-    #добавить цену
     return hotel_info_dict
 
 

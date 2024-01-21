@@ -11,7 +11,7 @@ class States(StatesGroup):
     country = State()  # Название страны
     city = State()     # Название города
     hotel_count = State()  # Количество отелей
-
+    city_id = State()
 
 
 
