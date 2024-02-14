@@ -21,8 +21,7 @@ async def translate_text(text, from_lang, to_lang):
     return response
 
 
-async def make_response_post(url: str, params: dict,  headers, success=200,):
-
+async def make_response_post(url: str, params: dict, headers, success=200, ):
     response = requests.post(url, data=params, headers=headers)
 
     status_code = response.status_code
@@ -48,12 +47,12 @@ async def get_locations_json(city: str, locale: str, domain: str) -> Dict:
     url = "https://worldwide-hotels.p.rapidapi.com/typeahead"
 
     payload = {
-        "q": "las",
-        "language": "en_US"
+        "q": city,
+        "language": "ru_RU"
     }
     headers = {
         "content-type": "application/x-www-form-urlencoded",
-        "X-RapidAPI-Key": "18175e639emshb83b5ab1a6f004ep1ba319jsn299d3e3b84e0",
+        "X-RapidAPI-Key": "9394c6d853mshd73905c1e35aff2p10cc88jsn88d2c1997a2a",
         "X-RapidAPI-Host": "worldwide-hotels.p.rapidapi.com"
     }
 
@@ -78,21 +77,18 @@ async def get_hotel_info_json(domain: str, locale: str, hotel_id: str) -> Dict:
     return response
 
 
-
-
-async def get_hotels_json(language: str, offset: str, currency: str, checkout_date: str, location_id: str,
-                          adults_number: str, checkin_date: str):
+async def get_hotels_json(location_id: str):
     url = "https://worldwide-hotels.p.rapidapi.com/search"
 
     payload = {
-        "location_id": "298484",
+        "location_id": location_id,
         "language": "ru_RU",
         "currency": "RUB",
         "offset": "0"
     }
     headers = {
         "content-type": "application/x-www-form-urlencoded",
-        "X-RapidAPI-Key": "18175e639emshb83b5ab1a6f004ep1ba319jsn299d3e3b84e0",
+        "X-RapidAPI-Key": "9394c6d853mshd73905c1e35aff2p10cc88jsn88d2c1997a2a",
         "X-RapidAPI-Host": "worldwide-hotels.p.rapidapi.com"
     }
 
@@ -102,4 +98,3 @@ async def get_hotels_json(language: str, offset: str, currency: str, checkout_da
         raise Exception
 
     return response
-
