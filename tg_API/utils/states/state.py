@@ -19,6 +19,9 @@ class States(StatesGroup):
     hotel_count_custom = State()
     city_custom = State()
     country_custom = State()
+    process_hotel_count_high = State()
+    city_high = State()
+    country_high = State()
 
 
 

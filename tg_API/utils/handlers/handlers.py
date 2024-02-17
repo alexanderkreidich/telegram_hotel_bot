@@ -3,7 +3,7 @@
 # сделать кнопку low
 # добаввить адрес отеля и ссылку на карты, чтобы можно было сразу построить маршрут 
 import aiogram
-
+from database.common.models import save_search, get_user_search_history, format_search_history
 from tg_API.utils.states.state import States
 from load_bot import dp, bot
 from aiogram.dispatcher import FSMContext
@@ -131,6 +131,17 @@ async def process_hotel_count(message: types.Message, state: FSMContext):
             except Exception as e:
                 # Отправить текстовое сообщение, если отправка фото не удалась
                 await bot.send_message(chat_id=message.chat.id, text=info_text)
+            hotel_data = {
+                "web_url": web_url,
+                "hotel_name": name,
+                "total_price": price,
+                "address": address,
+                "photo_url": original_photo_url,
+                "user_id": message.from_user.id,  # Ссылка на запись пользователя из предыдущего шага
+                "rating": rating
+            }
+            save_search(user_id=message.from_user.id, search_criteria=hotel_data)
+
     await States.wait_command.set()
 
 
@@ -163,7 +174,7 @@ async def min_price_entered(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['min_price'] = message.text
     await States.waiting_for_max_price.set()
-    await message.reply("Введите ма ксимальную цену:")
+    await message.reply("Введите максимальную цену:")
 
 
 @dp.message_handler(state=States.waiting_for_max_price)
@@ -175,7 +186,7 @@ async def max_price_entered(message: types.Message, state: FSMContext):
 
 
 @dp.message_handler(state=States.country_custom)
-async def process_country(message: types.Message, state: FSMContext):
+async def process_country_custom(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['country'] = message.text
     await States.city_custom.set()
@@ -196,6 +207,92 @@ async def choice_city_custom(message: types.Message, state: FSMContext):
 
 @dp.message_handler(lambda message: message.text.isdigit(), state=States.hotel_count_custom)
 async def process_hotel_count_custom(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        min_price = int(data['min_price'])
+        max_price = int(data['max_price'])
+        rating = float(data['rating'])
+
+        hotels = await get_hotels_json(data['city_id'])
+        filtered_elements = []
+
+        for elem in hotels['results']['data']:
+            price_str = re.sub(r'[^\d-]', '', elem.get('price', ''))
+            prices = [int(p) for p in re.findall(r'\d+', price_str)]
+            if not prices:
+                continue
+            min_elem_price = min(prices)
+            elem_rating = float(elem.get('rating', 0))
+
+            if (min_price <= min_elem_price <= max_price) and (elem_rating >= rating):
+                filtered_elements.append(elem)
+
+        # Сортировка отелей по минимальной цене
+        sorted_elements = sorted(filtered_elements, key=lambda x: min([int(p) for p in re.findall(r'\d+', x.get('price', ''))]))
+
+        for element in sorted_elements[:int(message.text)]:
+            # Формирование и отправка сообщения для каждого отеля
+            info_text = f"Hotel Name: {element.get('name', 'No name available')}\n" \
+                        f"Price: {element.get('price', 'No price available')}\n" \
+                        f"Rating: {element.get('rating', 'No rating available')}\n" \
+                        f"Address: {element.get('address', 'No address available')}\n" \
+                        f"Web URL: {element.get('web_url', 'No web URL available')}\n" \
+                        f"Website: {element.get('website', 'No website available')}"
+            try:
+                original_photo_url = element.get('photo', {}).get('images', {}).get('original', {}).get('url', 'No photo URL available')
+                if original_photo_url.startswith("http"):
+                    await bot.send_photo(photo=original_photo_url, caption=info_text, chat_id=message.chat.id)
+                else:
+                    await bot.send_message(chat_id=message.chat.id, text=info_text)
+            except Exception as e:
+                await bot.send_message(chat_id=message.chat.id, text=info_text)
+            hotel_data = {
+                "web_url": element.get('web_url', 'No web URL available'),
+                "hotel_name": element.get('name', 'No name available'),
+                "total_price": element.get('price', 'No price available'),
+                "address": element.get('address', 'No address available'),
+                "photo_url": original_photo_url,
+                "user_id": message.from_user.id,  # Ссылка на запись пользователя из предыдущего шага
+                "rating": element.get('rating', 'No rating available')
+            }
+            save_search(user_id=message.from_user.id, search_criteria=hotel_data)
+
+    await States.wait_command.set()
+
+
+
+# END CUSTOM COMMAND
+
+#HIGH COMMAND
+
+@dp.message_handler(commands=['high'], state=States.wait_command)
+async def cmd_high(message: types.Message):
+    await States.country_high.set()
+    await message.reply("В какую страну вы хотели бы полететь?")
+
+
+@dp.message_handler(state=States.country_high)
+async def process_country_high(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['country'] = message.text
+    await States.city_high.set()
+    await message.reply("Какой город в этой стране вы хотите посетить?")
+
+
+@dp.message_handler(state=States.city_high)
+async def choice_city_high(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['city'] = message.text.capitalize()
+        inp = data['city'] + ' ' + data['country']
+        data['city_id'] = await get_city_id(city=inp, domain=domains, locale=locales)
+        if data['city_id']:
+            await message.answer(text='City_id is okay')
+
+    await message.answer(text='Сколько вариантов отелей вам отправить?')
+    await States.process_hotel_count_high.set()
+
+
+@dp.message_handler(lambda message: message.text.isdigit(), state=States.process_hotel_count_high)
+async def process_hotel_count_high(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['hotel_count'] = int(message.text)
         hotels = await get_hotels_json(data['city_id'])
@@ -218,21 +315,17 @@ async def process_hotel_count_custom(message: types.Message, state: FSMContext):
             print(element.get('price', '').split())
             price_str = element.get('price', '')
             price_str = re.sub(r'[\sруб]+', '', price_str)
-            rating = float(element.get('rating'))
             print(price_str)
             if '-' in price_str:
                 # Если есть диапазон, разделяем его и преобразуем обе части в числа
                 start, end = map(float, price_str.split('-'))
-                if data['min_price'] and data['max_price'] in range(start, end + 1):
-
                 return int(start)  # Можно добавить оба числа или минимальное
             else:
                 # Для единичных чисел просто добавляем значение в список
                 return int(price_str)
 
-
         # Sorting the elements by price
-        sorted_elements = sorted(elements, key=get_price)[:int(message.text)]
+        sorted_elements = sorted(elements, key=get_price, reverse=True)[:int(message.text)]
 
         for element in sorted_elements:
             # Rest of your code...
@@ -251,17 +344,29 @@ async def process_hotel_count_custom(message: types.Message, state: FSMContext):
                     await bot.send_photo(photo=original_photo_url, caption=info_text, chat_id=message.chat.id)
                 else:
                     # Отправить текстовое сообщение, если URL фото недействителен
-                    await bot.send_message(chat_id=message.chat.id, text=info_text)
+                    await bot.send_message(chat_id=message.chat.id, text=info_text,)
             except Exception as e:
                 # Отправить текстовое сообщение, если отправка фото не удалась
-                await bot.send_message(chat_id=message.chat.id, text=info_text)
+                await bot.send_message(chat_id=message.chat.id, text=info_text, reply_markup=get_kb_commands(commands))
+            hotel_data = {
+                "web_url": web_url,
+                "hotel_name": name,
+                "total_price": price,
+                "address": address,
+                "photo_url": original_photo_url,
+                "user_id": message.from_user.id,  # Ссылка на запись пользователя из предыдущего шага
+                "rating": rating
+            }
+            save_search(user_id=message.from_user.id, search_criteria=hotel_data)
     await States.wait_command.set()
 
 
+#END HIGH COMMAND
 
-# END CUSTOM COMMAND
 
 @dp.message_handler(state=States.wait_command, commands=['history'])
-async def history_command(message: types.Message):
-    history = ''  # здесь должен быть вывод истории запросов пользователей
-    await message.answer(text=f'Ваша история запросов:\n{history}')
+async def send_search_history(message: types.Message):
+    user_id = str(message.from_user.id)  # Получение Telegram ID пользователя
+    history = get_user_search_history(user_id)  # Запрос истории поиска из базы данных
+    formatted_history = format_search_history(history)  # Форматирование истории для вывода
+    await message.answer(formatted_history)  # Отправка истории пользователю
