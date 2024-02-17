@@ -8,10 +8,10 @@ from tg_API.utils.states.state import States
 from load_bot import dp, bot
 from aiogram.dispatcher import FSMContext
 from aiogram import types, utils
-from site_API.utils.parse_responses.parse_hotel_resp import get_city_id, get_hotels_json
+from site_API.utils.parse_responses.parse_hotel_resp import get_city_id
 from tg_API.utils.keyboards.keyboards import get_kb_commands, domains, commands, locales
 import re
-
+from site_API.utils.requests.site_api_requests import get_hotels_json
 help_text = """
 Команды:
 ● /help — помощь по командам бота;
@@ -40,9 +40,6 @@ async def help_command(message: types.Message):
 
 @dp.message_handler(commands=['Вернуться в меню'], state='*')
 async def cancel_handler(message: types.Message, state: FSMContext):
-    current_state = await state.get_state()
-    if current_state is None:
-        return
     await States.wait_command.set()
     await message.reply('Операция отменена.')
 
@@ -66,27 +63,14 @@ async def process_country(message: types.Message, state: FSMContext):
 @dp.message_handler(state=States.city)
 async def choice_city(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
-        data['city'] = message.text
+        data['city'] = message.text.capitalize()
         inp = data['city'] + ' ' + data['country']
         data['city_id'] = await get_city_id(city=inp, domain=domains, locale=locales)
         if data['city_id']:
             await message.answer(text='City_id is okay')
 
     await message.answer(text='Сколько вариантов отелей вам отправить?')
-    await States.hotel_count_custom.set()
-
-@dp.message_handler(state=States.city)
-async def choice_city(message: types.Message, state: FSMContext):
-    async with state.proxy() as data:
-        data['city'] = message.text
-        inp = data['city'] + ' ' + data['country']
-        data['city_id'] = await get_city_id(city=inp, domain=domains, locale=locales)
-        if data['city_id']:
-            await message.answer(text='City_id is okay')
-
-    await message.answer(text='Сколько вариантов отелей вам отправить?')
-    await States.hotel_count_custom.set()
-
+    await States.hotel_count.set()
 
 
 @dp.message_handler(lambda message: message.text.isdigit(), state=States.hotel_count)
@@ -96,7 +80,7 @@ async def process_hotel_count(message: types.Message, state: FSMContext):
         hotels = await get_hotels_json(data['city_id'])
         elements = []
         for elem in hotels['results']['data']:
-            if elem.get('price', '') != '' and elem.get('price_level', '') != '':
+            if elem.get('price', '') != '':
                 elements.append(elem)
 
         # Проверяем, что все элементы в filtered_data имеют 'price'
@@ -113,7 +97,7 @@ async def process_hotel_count(message: types.Message, state: FSMContext):
             print(element.get('price', '').split())
             price_str = element.get('price', '')
             price_str = re.sub(r'[\sруб]+', '', price_str)
-
+            print(price_str)
             if '-' in price_str:
                 # Если есть диапазон, разделяем его и преобразуем обе части в числа
                 start, end = map(float, price_str.split('-'))
@@ -179,7 +163,7 @@ async def min_price_entered(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['min_price'] = message.text
     await States.waiting_for_max_price.set()
-    await message.reply("Введите максимальную цену:")
+    await message.reply("Введите ма ксимальную цену:")
 
 
 @dp.message_handler(state=States.waiting_for_max_price)
@@ -187,10 +171,92 @@ async def max_price_entered(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['max_price'] = message.text
     await message.reply('В какую страну вы хотели бы полететь?')
+    await States.country_custom.set()
 
-    # all the shit goes
 
-    await States.country.set()
+@dp.message_handler(state=States.country_custom)
+async def process_country(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['country'] = message.text
+    await States.city_custom.set()
+    await message.reply("Какой город в этой стране вы хотите посетить?")
+
+
+@dp.message_handler(state=States.city_custom)
+async def choice_city_custom(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['city'] = message.text.capitalize()
+        inp = data['city'] + ' ' + data['country']
+        data['city_id'] = await get_city_id(city=inp, domain=domains, locale=locales)
+        if data['city_id']:
+            print('City_id is okay')
+    await message.answer(text='Сколько вариантов отелей вам отправить?')
+    await States.hotel_count_custom.set()
+
+
+@dp.message_handler(lambda message: message.text.isdigit(), state=States.hotel_count_custom)
+async def process_hotel_count_custom(message: types.Message, state: FSMContext):
+    async with state.proxy() as data:
+        data['hotel_count'] = int(message.text)
+        hotels = await get_hotels_json(data['city_id'])
+        elements = []
+        for elem in hotels['results']['data']:
+            if elem.get('price', '') != '':
+                elements.append(elem)
+
+        # Проверяем, что все элементы в filtered_data имеют 'price'
+        all_have_price = all('price' in elem and elem['price'] != '' for elem in elements)
+
+        if all_have_price:
+            print("Все элементы в filtered_data имеют 'price'")
+            hotels['results']['data'] = elements
+        else:
+            print("Некоторые элементы в filtered_data не имеют 'price'")
+
+        # Function to extract numerical price from the price string
+        def get_price(element):
+            print(element.get('price', '').split())
+            price_str = element.get('price', '')
+            price_str = re.sub(r'[\sруб]+', '', price_str)
+            rating = float(element.get('rating'))
+            print(price_str)
+            if '-' in price_str:
+                # Если есть диапазон, разделяем его и преобразуем обе части в числа
+                start, end = map(float, price_str.split('-'))
+                if data['min_price'] and data['max_price'] in range(start, end + 1):
+
+                return int(start)  # Можно добавить оба числа или минимальное
+            else:
+                # Для единичных чисел просто добавляем значение в список
+                return int(price_str)
+
+
+        # Sorting the elements by price
+        sorted_elements = sorted(elements, key=get_price)[:int(message.text)]
+
+        for element in sorted_elements:
+            # Rest of your code...
+            # Extracting required information
+            name = element.get('name', 'No name available')
+            price = element.get('price', 'No price available')
+            rating = element.get('rating', 'No rating available')
+            web_url = element.get('web_url', 'No web URL available')
+            website = element.get('website', 'No website available')
+            address = element.get('address', 'No address available')  # Извлечение адреса
+            original_photo_url = element.get('photo', {}).get('images', {}).get('original', {}).get('url',
+                                                                                                    'No photo URL available')
+            info_text = f"Hotel Name: {name}\nPrice: {price}\nRating: {rating}\nAddress: {address}\nWeb URL: {web_url}\nWebsite: {website}"
+            try:
+                if original_photo_url and original_photo_url.startswith("http"):
+                    await bot.send_photo(photo=original_photo_url, caption=info_text, chat_id=message.chat.id)
+                else:
+                    # Отправить текстовое сообщение, если URL фото недействителен
+                    await bot.send_message(chat_id=message.chat.id, text=info_text)
+            except Exception as e:
+                # Отправить текстовое сообщение, если отправка фото не удалась
+                await bot.send_message(chat_id=message.chat.id, text=info_text)
+    await States.wait_command.set()
+
 
 
 # END CUSTOM COMMAND

@@ -43,7 +43,7 @@ async def make_response(url: str, params: dict, success=200):
     return status_code
 
 
-async def get_locations_json(city: str, locale: str, domain: str) -> Dict:
+async def get_locations_json(city: str) -> Dict:
     url = "https://worldwide-hotels.p.rapidapi.com/typeahead"
 
     payload = {
@@ -52,7 +52,7 @@ async def get_locations_json(city: str, locale: str, domain: str) -> Dict:
     }
     headers = {
         "content-type": "application/x-www-form-urlencoded",
-        "X-RapidAPI-Key": "9394c6d853mshd73905c1e35aff2p10cc88jsn88d2c1997a2a",
+        "X-RapidAPI-Key": "c7019d944emshc10ae8164be3f07p1b6bfajsn21e855e7c903",
         "X-RapidAPI-Host": "worldwide-hotels.p.rapidapi.com"
     }
 
@@ -62,20 +62,6 @@ async def get_locations_json(city: str, locale: str, domain: str) -> Dict:
         raise Exception
 
     return cities
-
-
-async def get_hotel_info_json(domain: str, locale: str, hotel_id: str) -> Dict:
-    url = "https://hotels-com-provider.p.rapidapi.com/v2/hotels/details"
-
-    querystring = {"domain": domain, "locale": locale, "hotel_id": hotel_id}
-
-    response = await make_response(url=url, params=querystring)
-
-    if isinstance(response, int):
-        raise Exception
-
-    return response
-
 
 async def get_hotels_json(location_id: str):
     url = "https://worldwide-hotels.p.rapidapi.com/search"
@@ -88,7 +74,7 @@ async def get_hotels_json(location_id: str):
     }
     headers = {
         "content-type": "application/x-www-form-urlencoded",
-        "X-RapidAPI-Key": "9394c6d853mshd73905c1e35aff2p10cc88jsn88d2c1997a2a",
+        "X-RapidAPI-Key": "c7019d944emshc10ae8164be3f07p1b6bfajsn21e855e7c903",
         "X-RapidAPI-Host": "worldwide-hotels.p.rapidapi.com"
     }
 

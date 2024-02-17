@@ -17,6 +17,8 @@ class States(StatesGroup):
     hotel_count = State()  # Количество отелей
     city_id = State()
     hotel_count_custom = State()
+    city_custom = State()
+    country_custom = State()
 
 
 
