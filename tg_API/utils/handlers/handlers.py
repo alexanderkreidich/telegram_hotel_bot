@@ -62,7 +62,7 @@ async def choice_city(message: types.Message, state: FSMContext):
     async with state.proxy() as data:
         data['city'] = message.text.capitalize()
         inp = data['city'] + ' ' + data['country']
-        data['city_id'] = await get_city_id(city=inp, domain=domains, locale=locales)
+        data['city_id'] = await get_city_id(city=inp)
         if data['city_id']:
             print('city_id is okay')
             await message.answer(text='Сколько вариантов отелей вам отправить?')

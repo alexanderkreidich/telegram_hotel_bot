@@ -1,4 +1,4 @@
 .idea
 tg_bot.db
-venv
+venv/
 .env
