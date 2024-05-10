@@ -52,7 +52,7 @@ async def get_locations_json(city: str) -> Dict:
     }
     headers = {
         "content-type": "application/x-www-form-urlencoded",
-        "X-RapidAPI-Key": "c7019d944emshc10ae8164be3f07p1b6bfajsn21e855e7c903",
+        "X-RapidAPI-Key": "20de787d1amshc0767bbe0efe17ap120276jsne5312d144f68",
         "X-RapidAPI-Host": "worldwide-hotels.p.rapidapi.com"
     }
 
@@ -74,7 +74,7 @@ async def get_hotels_json(location_id: str):
     }
     headers = {
         "content-type": "application/x-www-form-urlencoded",
-        "X-RapidAPI-Key": "c7019d944emshc10ae8164be3f07p1b6bfajsn21e855e7c903",
+        "X-RapidAPI-Key": "20de787d1amshc0767bbe0efe17ap120276jsne5312d144f68",
         "X-RapidAPI-Host": "worldwide-hotels.p.rapidapi.com"
     }
 
